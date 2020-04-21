@@ -160,7 +160,7 @@ namespace automatic_workspace
         public const string salt = "BbfbGYY55$Yvdv";
         public static string HashMD5(string password)
         {
-            var md5 = MD5.Create();
+            using var md5 = MD5.Create();
             byte[] hash = md5.ComputeHash(Encoding.UTF8.GetBytes(password));
             var hash_password = new StringBuilder();
             foreach (byte hash_b in hash)
