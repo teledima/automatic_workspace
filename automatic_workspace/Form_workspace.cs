@@ -1,18 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Npgsql;
-using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using Dapper;
-using Microsoft.VisualBasic;
-using SqlKata;
-using SqlKata.Compilers;
+using System;
 using NpgsqlTypes;
 
 namespace automatic_workspace
@@ -53,8 +45,8 @@ namespace automatic_workspace
             DataTable data_statuses = new DataTable();
             dates_load(data_statuses, "select name from statuses");
             dates_load(data_subject, "select subject_name from subject");
-            {
-                questions.Columns.Add(new DataGridViewTextBoxColumn
+            #region
+            questions.Columns.Add(new DataGridViewTextBoxColumn
                 {
                     Name = "id_question",
                     ValueType = typeof(uint),
@@ -117,7 +109,7 @@ namespace automatic_workspace
                     DataSource = data_statuses,
                     DisplayMember = "name"
                 });
-            }
+            #endregion
             using (var connect = new NpgsqlConnection(connect_string))
             {
                 connect.Open();
@@ -239,7 +231,7 @@ namespace automatic_workspace
             dates_load(statuses, "select name from statuses");
             ans_quest.Columns.Add(new DataGridViewTextBoxColumn
             {
-                Name = "id_user",
+                Name = "user_id",
                 Visible = false
             });
             ans_quest.Columns.Add(new DataGridViewTextBoxColumn
@@ -266,6 +258,7 @@ namespace automatic_workspace
                 DataSource = statuses,
                 DisplayMember = "name"
             });
+            ans_quest.Visible = false;
         }
         private void dates_load(DataTable data, string command_text)
         {
@@ -363,27 +356,85 @@ namespace automatic_workspace
 
         private void questions_CellClick(object sender, DataGridViewCellEventArgs e)
         {
-            if (questions.Rows[e.RowIndex].IsNewRow) return;
+            if (questions.Rows[e.RowIndex].IsNewRow || questions.IsCurrentRowDirty) return;
             var connect = new NpgsqlConnection(connect_string);
             int id_question = (int)questions.Rows[e.RowIndex].Cells["id_question"].Value;
             connect.Open();
             var reader = connect.ExecuteReader("select id_user, login, age, id_status, name from answers inner join users u on answers.user_id_ans = u.id_user inner join statuses s on u.status_id = s.id_status where question_id = @id_question",
                 new { id_question });
             ans_quest.Rows.Clear();
+            ans_quest.Visible = true;
             while (reader.Read())
             {
                 ans_quest.Rows.Add(reader["id_user"],reader["login"], reader["age"], reader["id_status"], reader["name"]);
             }
+            ans_quest.Tag = id_question;
             FillTag(ans_quest);
             connect.Close();
         }
 
         private void ans_quest_RowValidating(object sender, DataGridViewCellCancelEventArgs e)
         {
+
             var row = ans_quest.Rows[e.RowIndex];
             if (!e.Cancel)
             {
-
+                if (ans_quest.IsCurrentRowDirty)
+                {
+                    using var connect = new NpgsqlConnection(connect_string);
+                    connect.Open();
+                    // ищем id_status
+                    string status = row.Cells["status"].Value.ToString();
+                    int id_status = (int)connect.ExecuteScalar("select id_status from statuses where name = @status", new { status });
+                    int question_id = (int)ans_quest.Tag;
+                    if (row.Tag == null) //если мы вставляем новую запись
+                    {
+                        int user_id_ans;
+                        if (row.Cells["user_id"].Value == null) //если пользователя нет, то сначала создаём его
+                        {
+                            // добавляем нового пользователя в таблицу users
+                            string login = row.Cells["login"].Value.ToString();
+                            int age = (int)(uint)row.Cells["age"].Value;
+                            int status_id = id_status;
+                            user_id_ans = (int)connect.ExecuteScalar("insert into users(login, age, status_id) values (@login, @age, @status_id) returning id_user", new { login, age, status_id });
+                            // добавлеям пользователя в таблицу answers
+                        }
+                        else // иначе, если пользователь существует то надо только вставить новую запись в answers
+                        {
+                            user_id_ans = (int)row.Cells["user_id"].Value;
+                        }
+                        connect.Execute("insert into answers(question_id, user_id_ans) values (@question_id, @user_id_ans)", new { question_id, user_id_ans });
+                    }
+                    else // если мы обновляем запись
+                    {
+                        int old_user_id = (int)((List<object>)row.Tag)[0];
+                        int new_user_id;
+                        if (row.Cells["user_id"].Value == null) // если пользователя нет, то мы сначала вставляем нового пользователя, затем заменяем старый id_user на новый
+                        {
+                            // добавляем нового пользователя в таблицу users
+                            string login = row.Cells["login"].Value.ToString();
+                            int age = (int)row.Cells["age"].Value;
+                            int status_id = id_status;
+                            new_user_id = (int)connect.ExecuteScalar("insert into users(login, age, status_id) values (@login, @age, @status_id) returning id_user", new { login, age, status_id });
+                            // обновляем user_id_ans в таблице answers
+                            connect.Execute("update answers set user_id_ans = @new_user_id where question_id = @question_id and user_id_ans = @old_user_id",
+                                new { new_user_id, question_id, old_user_id });
+                        }
+                        else // если пользователь есть, то надо просто заменить старый id_user
+                        {
+                            new_user_id = (int)row.Cells["user_id"].Value;
+                        }
+                        connect.Execute("update answers set user_id_ans = @new_user_id where question_id = @question_id and user_id_ans = @old_user_id",
+                            new { new_user_id, question_id, old_user_id });
+                    }
+                    connect.Close();
+                    List<object> list = new List<object>();
+                    foreach (DataGridViewCell cell in row.Cells)
+                    {
+                        list.Add(cell.Value);
+                    }
+                    row.Tag = list;
+                }
             }
         }
 
@@ -425,16 +476,20 @@ namespace automatic_workspace
                 }
                 if (id_user == null)
                 {
+                    dataGrid.Rows[e.RowIndex].Cells["user_id"].Value = null;
+                    dataGrid.Rows[e.RowIndex].Cells["user_id"].ReadOnly = false;
                     dataGrid.Rows[e.RowIndex].Cells["age"].ReadOnly = false;
                     dataGrid.Rows[e.RowIndex].Cells["status"].ReadOnly = false;
                     return;
                 }
                 using (var command_select_data = new NpgsqlCommand() { Connection = connect })
                 {
-                    command_select_data.CommandText = "select login, age, name from users inner join statuses s on users.status_id = s.id_status where login = @login";
+                    command_select_data.CommandText = "select id_user, login, age, name from users inner join statuses s on users.status_id = s.id_status where login = @login";
                     command_select_data.Parameters.AddWithValue("@login", dataGrid.Rows[e.RowIndex].Cells["login"].Value);
                     var reader = command_select_data.ExecuteReader();
                     bool check = reader.Read();
+                    dataGrid.Rows[e.RowIndex].Cells["user_id"].Value = reader["id_user"];
+                    dataGrid.Rows[e.RowIndex].Cells["user_id"].ReadOnly = true;
                     dataGrid.Rows[e.RowIndex].Cells["age"].Value = reader["age"] ?? null;
                     dataGrid.Rows[e.RowIndex].Cells["age"].ReadOnly = true;
                     dataGrid.Rows[e.RowIndex].Cells["status"].Value = reader["name"] ?? null;
@@ -455,6 +510,150 @@ namespace automatic_workspace
                         tag.Add(cell.Value);
                     row.Tag = tag;
                 } //assign a tag for each added row equal his values
+            }
+        }
+
+        private void questions_RowValidating(object sender, DataGridViewCellCancelEventArgs e)
+        {
+            var row = questions.Rows[e.RowIndex];
+
+            if (questions.IsCurrentRowDirty)
+            {
+                if (!e.Cancel)
+                {
+                    if (row.Cells["login"].Value == null)
+                    {
+                        MessageBox.Show("Заполните обязательное поле login", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+                    if (row.Cells["status"].Value == null) row.Cells["status"].Value = "Hide";
+                    using var connect = new NpgsqlConnection(connect_string);
+                    connect.Open();
+
+                    using var command_status = new NpgsqlCommand() { Connection = connect };
+                    command_status.CommandText = "select id_status from statuses where name = @name";
+                    command_status.Parameters.AddWithValue("@name", row.Cells["status"].Value);
+                    int id_status = (int)command_status.ExecuteScalar();
+
+                    string subject = row.Cells["subject"].Value.ToString();
+                    int id_subject = (int)connect.ExecuteScalar("select id from subject where subject_name = @subject", new { subject });
+
+                    using var command_check = new NpgsqlCommand() { Connection = connect };
+                    command_check.CommandText = "select id_user from users where login = @login";
+                    command_check.Parameters.AddWithValue("@login", row.Cells["login"].Value.ToString());
+                    int? id_user = (int?)command_check.ExecuteScalar();
+
+                    using var command_user = new NpgsqlCommand() { Connection = connect };
+                    command_user.Parameters.AddWithValue("@age", NpgsqlDbType.Unknown, row.Cells["age"].Value ?? DBNull.Value);
+                    command_user.Parameters.AddWithValue("@status_id", NpgsqlDbType.Unknown, id_status);
+                    command_user.Parameters.AddWithValue("@login", row.Cells["login"].Value);
+
+                    using var command_for_questions = new NpgsqlCommand() { Connection = connect };
+                    command_for_questions.Parameters.AddWithValue("@link_id", NpgsqlDbType.Unknown, row.Cells["link_id"].Value ?? System.DBNull.Value);
+                    command_for_questions.Parameters.AddWithValue("@count_view", NpgsqlDbType.Unknown, row.Cells["count_view"].Value ?? DBNull.Value);
+                    command_for_questions.Parameters.AddWithValue("@subject_id", id_subject);
+
+                    if (row.Tag != null) //if a tag of the mutable row is null, then this row is new
+                    {
+                        func_update_user(connect, command_user, id_user, ((List<object>)row.Tag)[0]);
+                        func_update_question(command_for_questions, row.Cells["id_question"].Value);
+                        UpdateUserInfoDataGrid(row, id_status);
+                    }
+                    else
+                    {
+                        if (id_user == null) id_user = func_insert_user(command_user);
+                        int id_question = func_insert_question(command_for_questions, id_user);
+
+                        row.Cells["id_question"].Value = id_question;
+                        row.Cells["subject_id"].Value = id_subject;
+                        row.Cells["user_id"].Value = id_user;
+                        row.Cells["status_id"].Value = id_status;
+                    }
+                    connect.Close();
+
+                    var list = new List<object>();
+                    foreach (DataGridViewCell cell in row.Cells)
+                    {
+                        list.Add(cell.Value);
+                    }
+                    row.Tag = list; //change a tag this row 
+
+                    row.ErrorText = string.Empty; //clear error text
+                    row.Cells["age"].ReadOnly = false;
+                    row.Cells["status"].ReadOnly = false;
+                }
+
+            }
+        }
+        private int? func_insert_user(NpgsqlCommand command_user)
+        {
+            command_user.CommandText = @"insert into users(login, age, status_id) values (@login, @age, @status_id) returning id_user";
+            return (int?)command_user.ExecuteScalar();
+        }
+
+        private int func_insert_question(NpgsqlCommand command_for_questions, int? id_user)
+        {
+            command_for_questions.CommandText = @"insert into questions(link_id, count_view, subject_id, user_id) values (@link_id, @count_view, @subject_id, @id_user) returning id_question";
+            command_for_questions.Parameters.AddWithValue("@id_user", NpgsqlDbType.Unknown, id_user);
+            return (int)command_for_questions.ExecuteScalar();
+        }
+
+        private void func_update_user(NpgsqlConnection connection, NpgsqlCommand command_user, int? id_user, object id_question)
+        {
+            if (id_user == null) //если нового пользователя нету, то мы вставляем его 
+            {
+                command_user.CommandText = "insert into users(login, age, status_id) values (@login, @age, @status_id) returning id_user";
+
+                id_user = (int)command_user.ExecuteScalar();
+            }
+            else
+            {
+                command_user.CommandText = "update users set age = @age, status_id = @status_id where login = @login";
+                command_user.ExecuteNonQuery();
+            }
+
+            using var command_update_questions = new NpgsqlCommand() { Connection = connection };
+            command_update_questions.CommandText = "update questions set user_id = @user_id where  id_question = @id_question";
+            command_update_questions.Parameters.AddWithValue("@user_id", NpgsqlDbType.Unknown, id_user);
+            command_update_questions.Parameters.AddWithValue("@id_question", NpgsqlDbType.Unknown, id_question);
+            command_update_questions.ExecuteNonQuery();
+        }
+
+        private void func_update_question(NpgsqlCommand command_for_questions, object id_question)
+        {
+            command_for_questions.CommandText = @"update questions set link_id = @link_id, count_view = @count_view, subject_id = @subject_id where id_question = @id_question";
+            command_for_questions.Parameters.AddWithValue("@id_question", NpgsqlDbType.Unknown, id_question);
+            command_for_questions.ExecuteNonQuery();
+        }
+
+        private void UpdateUserInfoDataGrid(DataGridViewRow row, int id_status)
+        {
+            if (row.Cells["login"].Value.ToString() == ((List<object>)row.Tag)[6].ToString())
+            {
+                if ((int?)row.Cells["status_id"].Value != id_status) // if status is changed
+                {
+                    foreach (DataGridViewRow row_up in questions.Rows)
+                    {
+                        if (!row_up.IsNewRow)
+                            if (row_up.Cells["login"].Value.ToString() == row.Cells["login"].Value.ToString()) // in all rows with this login change the status
+                            {
+                                row_up.Cells["status_id"].Value = id_status;
+                                row_up.Cells["status"].Value = row.Cells["status"].Value;
+                            }
+                    }
+                }
+
+                if (row.Cells["age"].Value.ToString() != ((List<object>)row.Tag)[7].ToString())
+                {
+                    foreach (DataGridViewRow row_up in questions.Rows)
+                    {
+                        if (!row_up.IsNewRow)
+                            if (row_up.Cells["login"].Value.ToString() == row.Cells["login"].Value.ToString()) // in all rows with this login change the status
+                            {
+                                row_up.Cells["age"].Value = row.Cells["age"].Value;
+                            }
+                    }
+                }
             }
         }
     }

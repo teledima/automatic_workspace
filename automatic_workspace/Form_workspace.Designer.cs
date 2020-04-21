@@ -100,6 +100,7 @@
             this.questions.TabIndex = 0;
             this.questions.CellClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.questions_CellClick);
             this.questions.CellEndEdit += new System.Windows.Forms.DataGridViewCellEventHandler(this.questions_CellEndEdit);
+            this.questions.RowValidating += new System.Windows.Forms.DataGridViewCellCancelEventHandler(this.questions_RowValidating);
             // 
             // tabPage2
             // 
