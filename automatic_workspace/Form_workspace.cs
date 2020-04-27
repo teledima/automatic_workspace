@@ -23,22 +23,37 @@ namespace automatic_workspace
         public Form_workspace()
         {
             InitializeComponent();
-            ChangeStatus += OnChangeItem;
-            if (User_info.status == 0 || User_info.status == 1)
+            if (User_info.Current_status == User_info.Status.Operator || User_info.Current_status == User_info.Status.Admin)
             {
                 questions.AllowUserToAddRows = true;
                 questions.AllowUserToDeleteRows = true;
                 questions.ReadOnly = false;
+
+                ans_quest.AllowUserToAddRows = true;
+                ans_quest.AllowUserToDeleteRows = true;
+                ans_quest.ReadOnly = false;
+
+                subjects.AllowUserToAddRows = true;
+                subjects.AllowUserToDeleteRows = true;
+                subjects.ReadOnly = false;
+
+                users.AllowUserToAddRows = true;
+                users.AllowUserToDeleteRows = true;
+                users.ReadOnly = false;
+
+                this.statuses.AllowUserToAddRows = true;
+                this.statuses.AllowUserToDeleteRows = true;
+                this.statuses.ReadOnly = false;
             }
-            if (User_info.status == 1)
+            if (User_info.Current_status == User_info.Status.Admin)
             {
                 data_grid_view_operators.AllowUserToAddRows = true;
                 data_grid_view_operators.AllowUserToDeleteRows = true;
                 data_grid_view_operators.ReadOnly = false;
             }
-            if (User_info.status == -1 || User_info.status == 0)
+            if (User_info.Current_status == User_info.Status.Guest || User_info.Current_status == User_info.Status.Operator)
             {
-                subject_page.Dispose();
+                operator_page.Dispose();
             }
             InitializeQuestions();
             InitializeOperators();

@@ -15,53 +15,15 @@ namespace automatic_workspace
 {
     public partial class Form_auth : Form
     {
-        string text_command;
         public Form_auth()
         {
             InitializeComponent();
-            if (Info_operate.Current_operation == Info_operate.Types.add)
-            {
-                this.Text = "Add";
-                button_registration.Text = "add user";
-                button_login.Visible = false;
-                text_command = "INSERT INTO operator_table(login, password) values(@login,@password)";
-            }
-            else if (Info_operate.Current_operation == Info_operate.Types.delete)
-            {
-                this.Text = "Delete";
-                button_registration.Enabled = true;
-                textbox_password.Visible = false;
-                label_pass.Visible = false;
-                button_registration.Text = "Delete";
-                text_command = "Delete from operator_table where login = @login";
-            }
-            else if (Info_operate.Current_operation == Info_operate.Types.update)
-            {
-                this.Text = "Update";
-                button_registration.Text = "Update password";
-                label_pass.Text = "New password";
-                label_log.Text = "New login";
-                textBox_old.Visible = true;
-                label_old.Visible = true;
-                label_update.Text = string.Format("You want update user with login \"{0}\"", Info_operate.active_item);
-                text_command = "update operator_table set login = @newlogin, password = @password where login = @login";
-            }
-            else if (Info_operate.Current_operation == Info_operate.Types.add_from_auth)
-            {
-                this.Text = "Registration";
-                button_registration.Text = "Sign up";
-                button_login.Visible = false;
-                text_command = "INSERT INTO operator_table(login, password) values(@login,@password)";
-            }
         }
 
         private void button_login_Click(object sender, EventArgs e)
         {
             if (Check_log_in(textbox_login.Text, textbox_password.Text))
-            {
-
                 Close();
-            }
             else
                 label_result.Text = "Failed to log in";
         }
@@ -82,7 +44,7 @@ namespace automatic_workspace
                     {
                         if (reader.GetValue(0).Equals(Hash.HashMD5(password + Hash.salt)))
                         {
-                            User_info.status = int.Parse(reader["is_admin"].ToString());
+                            User_info.Current_status = reader["is_admin"].Equals(true)?User_info.Status.Admin:User_info.Status.Operator;
                             result = true;
                         }
                         else
@@ -96,15 +58,6 @@ namespace automatic_workspace
                 connect.Close();
             }
             return result;
-        }
-        string HashPassword(string password)
-        {
-            var md5 = MD5.Create();
-            byte[] hash = md5.ComputeHash(Encoding.UTF8.GetBytes(password));
-            var hash_password = new StringBuilder();
-            foreach (byte hash_b in hash)
-                hash_password.Append(hash_b.ToString("X2"));
-            return hash_password.ToString().ToLower();
         }
 
         private void button_registration_Click(object sender, EventArgs e)
@@ -142,7 +95,7 @@ namespace automatic_workspace
 
         private void button_guest_Click(object sender, EventArgs e)
         {
-            User_info.status = -1;
+            User_info.Current_status = User_info.Status.Guest;
             Close();
         }
     }
