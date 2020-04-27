@@ -155,6 +155,7 @@
             this.users.Size = new System.Drawing.Size(796, 462);
             this.users.TabIndex = 0;
             this.users.RowValidating += new System.Windows.Forms.DataGridViewCellCancelEventHandler(this.users_RowValidating);
+            this.users.KeyDown += new System.Windows.Forms.KeyEventHandler(this.KeyDown_grid);
             // 
             // statuses_page
             // 

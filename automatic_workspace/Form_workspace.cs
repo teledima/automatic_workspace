@@ -59,7 +59,7 @@ namespace automatic_workspace
             {
                 Name = "id_question",
                 ValueType = typeof(uint),
-                Visible = false
+                Visible = true
             });
             questions.Columns.Add(new DataGridViewTextBoxColumn
             {
@@ -89,7 +89,7 @@ namespace automatic_workspace
             questions.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "user_id",
-                Visible = false
+                Visible = true
             });
             questions.Columns.Add(new DataGridViewTextBoxColumn
             {
@@ -106,7 +106,7 @@ namespace automatic_workspace
             questions.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "status_id",
-                Visible = false,
+                Visible = true,
                 ValueType = typeof(uint)
             });
             questions.Columns.Add(new DataGridViewComboBoxColumn
@@ -125,7 +125,10 @@ namespace automatic_workspace
                 var sCommand = new NpgsqlCommand
                 {
                     Connection = connect,
-                    CommandText = @"select * from questions inner join subject s2 on questions.subject_id = s2.id inner join users u on questions.user_id = u.id_user inner join statuses s on u.status_id = s.id_status;"
+                    CommandText = @"select * from questions
+                                    inner join subject on questions.subject_id = subject.id
+                                    left outer join users u on questions.user_id = u.id_user
+                                    left outer join statuses s on u.status_id = s.id_status;;"
                 };
                 var reader = sCommand.ExecuteReader();
                 while (reader.Read())
@@ -389,9 +392,9 @@ namespace automatic_workspace
                     connect.Open();
                     int? id_user = (int?)row.Cells["id_user"].Value;
                     string login = row.Cells["login"].Value.ToString();
-                    int? age = (int?)(uint)row.Cells["age"].Value;
+                    int? age = (int?)(uint?)row.Cells["age"].Value;
                     object status = row.Cells["status"].Value;
-                    int id_status = (int)connect.ExecuteScalar("select id_status from statuses where name = @status", new { status });
+                    int? id_status = (int?)connect.ExecuteScalar("select id_status from statuses where name = @status", new { status });
                     
                     if (row.Tag == null)
                     {
@@ -550,12 +553,13 @@ namespace automatic_workspace
                     dataGrid.Rows[e.RowIndex].Cells["user_id"].Value = null;
                     dataGrid.Rows[e.RowIndex].Cells["user_id"].ReadOnly = false;
                     dataGrid.Rows[e.RowIndex].Cells["age"].ReadOnly = false;
+                    dataGrid.Rows[e.RowIndex].Cells["status_id"].ReadOnly = false;
                     dataGrid.Rows[e.RowIndex].Cells["status"].ReadOnly = false;
                     return;
                 }
                 using (var command_select_data = new NpgsqlCommand() { Connection = connect })
                 {
-                    command_select_data.CommandText = "select id_user, login, age, name from users inner join statuses s on users.status_id = s.id_status where login = @login";
+                    command_select_data.CommandText = "select id_user, login, age, id_status, name from users left join statuses s on users.status_id = s.id_status where login = @login";
                     command_select_data.Parameters.AddWithValue("@login", dataGrid.Rows[e.RowIndex].Cells["login"].Value);
                     var reader = command_select_data.ExecuteReader();
                     bool check = reader.Read();
@@ -563,6 +567,8 @@ namespace automatic_workspace
                     dataGrid.Rows[e.RowIndex].Cells["user_id"].ReadOnly = true;
                     dataGrid.Rows[e.RowIndex].Cells["age"].Value = reader["age"] ?? null;
                     dataGrid.Rows[e.RowIndex].Cells["age"].ReadOnly = true;
+                    dataGrid.Rows[e.RowIndex].Cells["status_id"].Value = reader["id_status"] ?? null;
+                    dataGrid.Rows[e.RowIndex].Cells["status_id"].ReadOnly = true;
                     dataGrid.Rows[e.RowIndex].Cells["status"].Value = reader["name"] ?? null;
                     dataGrid.Rows[e.RowIndex].Cells["status"].ReadOnly = true;
                 }
@@ -594,9 +600,9 @@ namespace automatic_workspace
             {
                 if (!e.Cancel)
                 {
-                    if (row.Cells["login"].Value == null || row.Cells["link_id"].Value == null || row.Cells["link_id"].Value == DBNull.Value)
+                    if (row.Cells["link_id"].Value == null || row.Cells["link_id"].Value == DBNull.Value || row.Cells["subject"].Value == null)
                     {
-                        if (MessageBox.Show("Заполните обязательные поля {link_id, login}", "Error", MessageBoxButtons.OKCancel, MessageBoxIcon.Error) == DialogResult.OK)
+                        if (MessageBox.Show("Заполните обязательные поля {link_id, subject}", "Error", MessageBoxButtons.OKCancel, MessageBoxIcon.Error) == DialogResult.OK)
                             e.Cancel = true;
                         else
                         {
@@ -612,39 +618,24 @@ namespace automatic_workspace
                     {
                         using var connect = new NpgsqlConnection(connect_string);
                         connect.Open();
-                        if (row.Cells["status"].Value == null)
-                        {
-                            using var command_search_status_default = new NpgsqlCommand()
-                            {
-                                Connection = connect,
-                                CommandText = "select * from statuses where id_status = 3"
-                            };
-
-                            var reader = command_search_status_default.ExecuteReader();
-                            reader.Read();
-                            row.Cells["status_id"].Value = reader["id_status"];
-                            row.Cells["status"].Value = reader["name"];
-                            reader.Close();
-
-                        }
 
                         using var command_status = new NpgsqlCommand() { Connection = connect };
                         command_status.CommandText = "select id_status from statuses where name = @name";
-                        command_status.Parameters.AddWithValue("@name", row.Cells["status"].Value);
-                        int id_status = (int)command_status.ExecuteScalar();
+                        command_status.Parameters.AddWithValue("@name", row.Cells["status"].Value ?? DBNull.Value);
+                        int? id_status = (int?)command_status.ExecuteScalar();
 
                         string subject = row.Cells["subject"].Value.ToString();
-                        int id_subject = (int)connect.ExecuteScalar("select id from subject where subject_name = @subject", new { subject });
+                        int? id_subject = (int?)connect.ExecuteScalar("select id from subject where subject_name = @subject", new { subject });
 
                         using var command_check = new NpgsqlCommand() { Connection = connect };
                         command_check.CommandText = "select id_user from users where login = @login";
-                        command_check.Parameters.AddWithValue("@login", row.Cells["login"].Value.ToString());
+                        command_check.Parameters.AddWithValue("@login", row.Cells["login"].Value ?? DBNull.Value);
                         int? id_user = (int?)command_check.ExecuteScalar();
 
                         using var command_user = new NpgsqlCommand() { Connection = connect };
                         command_user.Parameters.AddWithValue("@age", NpgsqlDbType.Unknown, row.Cells["age"].Value ?? DBNull.Value);
-                        command_user.Parameters.AddWithValue("@status_id", NpgsqlDbType.Unknown, id_status);
-                        command_user.Parameters.AddWithValue("@login", row.Cells["login"].Value);
+                        command_user.Parameters.AddWithValue("@status_id", NpgsqlDbType.Unknown, (object)id_status ?? DBNull.Value);
+                        command_user.Parameters.AddWithValue("@login", row.Cells["login"].Value ?? DBNull.Value);
 
                         using var command_for_questions = new NpgsqlCommand() { Connection = connect };
                         command_for_questions.Parameters.AddWithValue("@link_id", NpgsqlDbType.Unknown, row.Cells["link_id"].Value ?? DBNull.Value);
@@ -659,7 +650,8 @@ namespace automatic_workspace
                         }
                         else
                         {
-                            if (id_user == null) id_user = func_insert_user(command_user);
+                            if (id_user == null && row.Cells["login"].Value != null)
+                               id_user = func_insert_user(command_user);
                             int id_question = func_insert_question(command_for_questions, id_user);
 
                             row.Cells["id_question"].Value = id_question;
@@ -673,6 +665,7 @@ namespace automatic_workspace
 
                         row.ErrorText = string.Empty; //clear error text
                         row.Cells["age"].ReadOnly = false;
+                        row.Cells["status_id"].ReadOnly = false;
                         row.Cells["status"].ReadOnly = false;
                     }
                 }
@@ -687,7 +680,7 @@ namespace automatic_workspace
         private int func_insert_question(NpgsqlCommand command_for_questions, int? id_user)
         {
             command_for_questions.CommandText = @"insert into questions(link_id, count_view, subject_id, user_id) values (@link_id, @count_view, @subject_id, @id_user) returning id_question";
-            command_for_questions.Parameters.AddWithValue("@id_user", NpgsqlDbType.Unknown, id_user);
+            command_for_questions.Parameters.AddWithValue("@id_user", NpgsqlDbType.Unknown, (object)id_user ?? DBNull.Value);
             return (int)command_for_questions.ExecuteScalar();
         }
 
@@ -719,11 +712,11 @@ namespace automatic_workspace
             command_for_questions.ExecuteNonQuery();
         }
 
-        private void UpdateUserInfoDataGrid(DataGridViewRow row, int id_status)
+        private void UpdateUserInfoDataGrid(DataGridViewRow row, int? id_status)
         {
             if (row.Cells["login"].Value.ToString() == ((List<object>)row.Tag)[6].ToString())
             {
-                if ((int?)row.Cells["status_id"].Value != id_status) // if status is changed
+                if (!row.Cells["status_id"].Value.Equals(id_status)) // if status is changed
                 {
                     foreach (DataGridViewRow row_up in questions.Rows)
                     {
@@ -892,12 +885,36 @@ namespace automatic_workspace
             }
             else if (gridView == data_grid_view_operators)
             {
-                connect.Execute("delete  from operator_table where id_user = @id", new { id });
+                connect.Execute("delete from operator_table where id_user = @id", new { id });
             }
-            //else if (gridView == )
+            else if (gridView == users)
+            {
+                connect.Execute("delete from users where id_user = @id", new { id });
+                Delete_into_questions(id);
+                Delete_into_answers();
+            }
+            else if (gridView == statuses)
+            {
+
+            }
+            else if (gridView == subjects)
+            {
+
+            }
+
             connect.Close();
         }
+        private void Delete_into_questions(int id_user)
+        {
+            foreach (DataGridViewRow row in questions.Rows)
+            {
+                
+            }
+        }
+        private void Delete_into_answers()
+        {
 
+        }
         private void KeyDown_grid(object sender, KeyEventArgs e)
         {
             DataGridView dataGrid = (DataGridView)sender;
