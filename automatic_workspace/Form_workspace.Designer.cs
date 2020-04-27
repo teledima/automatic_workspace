@@ -89,8 +89,8 @@
             this.ans_quest.Size = new System.Drawing.Size(565, 206);
             this.ans_quest.TabIndex = 3;
             this.ans_quest.CellEndEdit += new System.Windows.Forms.DataGridViewCellEventHandler(this.ans_quest_CellEndEdit);
-            this.ans_quest.RowsRemoved += new System.Windows.Forms.DataGridViewRowsRemovedEventHandler(this.RowsRemoved);
             this.ans_quest.RowValidating += new System.Windows.Forms.DataGridViewCellCancelEventHandler(this.ans_quest_RowValidating);
+            this.ans_quest.UserDeletingRow += new System.Windows.Forms.DataGridViewRowCancelEventHandler(this.UserDeletingRow_grid);
             this.ans_quest.KeyDown += new System.Windows.Forms.KeyEventHandler(this.KeyDown_grid);
             // 
             // questions
@@ -108,8 +108,8 @@
             this.questions.CellClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.questions_CellClick);
             this.questions.CellEndEdit += new System.Windows.Forms.DataGridViewCellEventHandler(this.questions_CellEndEdit);
             this.questions.DataError += new System.Windows.Forms.DataGridViewDataErrorEventHandler(this.questions_DataError);
-            this.questions.RowsRemoved += new System.Windows.Forms.DataGridViewRowsRemovedEventHandler(this.RowsRemoved);
             this.questions.RowValidating += new System.Windows.Forms.DataGridViewCellCancelEventHandler(this.questions_RowValidating);
+            this.questions.UserDeletingRow += new System.Windows.Forms.DataGridViewRowCancelEventHandler(this.UserDeletingRow_grid);
             this.questions.KeyDown += new System.Windows.Forms.KeyEventHandler(this.KeyDown_grid);
             // 
             // subject_page
@@ -130,9 +130,11 @@
             this.subjects.Name = "subjects";
             this.subjects.RowHeadersWidth = 51;
             this.subjects.RowTemplate.Height = 24;
-            this.subjects.Size = new System.Drawing.Size(215, 627);
+            this.subjects.Size = new System.Drawing.Size(409, 627);
             this.subjects.TabIndex = 0;
             this.subjects.RowValidating += new System.Windows.Forms.DataGridViewCellCancelEventHandler(this.Infomation_RowValidating);
+            this.subjects.UserDeletingRow += new System.Windows.Forms.DataGridViewRowCancelEventHandler(this.UserDeletingRow_grid);
+            this.subjects.KeyDown += new System.Windows.Forms.KeyEventHandler(this.KeyDown_grid);
             // 
             // users_page
             // 
@@ -155,6 +157,7 @@
             this.users.Size = new System.Drawing.Size(796, 462);
             this.users.TabIndex = 0;
             this.users.RowValidating += new System.Windows.Forms.DataGridViewCellCancelEventHandler(this.users_RowValidating);
+            this.users.UserDeletingRow += new System.Windows.Forms.DataGridViewRowCancelEventHandler(this.UserDeletingRow_grid);
             this.users.KeyDown += new System.Windows.Forms.KeyEventHandler(this.KeyDown_grid);
             // 
             // statuses_page
@@ -175,9 +178,11 @@
             this.statuses.Name = "statuses";
             this.statuses.RowHeadersWidth = 51;
             this.statuses.RowTemplate.Height = 24;
-            this.statuses.Size = new System.Drawing.Size(208, 628);
+            this.statuses.Size = new System.Drawing.Size(445, 628);
             this.statuses.TabIndex = 0;
             this.statuses.RowValidating += new System.Windows.Forms.DataGridViewCellCancelEventHandler(this.Infomation_RowValidating);
+            this.statuses.UserDeletingRow += new System.Windows.Forms.DataGridViewRowCancelEventHandler(this.UserDeletingRow_grid);
+            this.statuses.KeyDown += new System.Windows.Forms.KeyEventHandler(this.KeyDown_grid);
             // 
             // operators_page
             // 
@@ -203,6 +208,7 @@
             this.data_grid_view_operators.Size = new System.Drawing.Size(627, 361);
             this.data_grid_view_operators.TabIndex = 0;
             this.data_grid_view_operators.RowValidating += new System.Windows.Forms.DataGridViewCellCancelEventHandler(this.data_grid_view_operators_RowValidating);
+            this.data_grid_view_operators.UserDeletingRow += new System.Windows.Forms.DataGridViewRowCancelEventHandler(this.UserDeletingRow_grid);
             this.data_grid_view_operators.KeyDown += new System.Windows.Forms.KeyEventHandler(this.KeyDown_grid);
             // 
             // Form_workspace

@@ -8,6 +8,8 @@ using System;
 using NpgsqlTypes;
 using SqlKata;
 using SqlKata.Compilers;
+using SqlKata.Extensions;
+using SqlKata.Execution;
 
 namespace automatic_workspace
 {
@@ -53,7 +55,7 @@ namespace automatic_workspace
             DataTable data_subject = new DataTable();
             DataTable data_statuses = new DataTable();
             dates_load(data_statuses, "select name from statuses");
-            dates_load(data_subject, "select subject_name from subject");
+            dates_load(data_subject, "select name from subject");
             #region
             questions.Columns.Add(new DataGridViewTextBoxColumn
             {
@@ -84,7 +86,7 @@ namespace automatic_workspace
                 HeaderText = "subject",
                 ValueType = typeof(string),
                 DataSource = data_subject,
-                ValueMember = "subject_name"
+                DisplayMember = "name"
             });
             questions.Columns.Add(new DataGridViewTextBoxColumn
             {
@@ -125,16 +127,16 @@ namespace automatic_workspace
                 var sCommand = new NpgsqlCommand
                 {
                     Connection = connect,
-                    CommandText = @"select * from questions
+                    CommandText = @"select id_question, link_id, count_view, subject_id, subject.name s_name, user_id, login, age, status_id, s.name st_name from questions
                                     inner join subject on questions.subject_id = subject.id
                                     left outer join users u on questions.user_id = u.id_user
-                                    left outer join statuses s on u.status_id = s.id_status;;"
+                                    left outer join statuses s on u.status_id = s.id_status"
                 };
                 var reader = sCommand.ExecuteReader();
                 while (reader.Read())
                 {
-                    questions.Rows.Add(reader["id_question"], reader["link_id"], reader["count_view"], reader["subject_id"], reader["subject_name"], reader["user_id"], reader["login"], reader["age"], reader["status_id"],
-                        reader["name"]); //fill data_grid_view
+                    questions.Rows.Add(reader["id_question"], reader["link_id"], reader["count_view"], reader["subject_id"], reader["s_name"], reader["user_id"], reader["login"], reader["age"], reader["status_id"],
+                        reader["st_name"]); //fill data_grid_view
                 }
             }
             FillTag(questions);
@@ -174,7 +176,7 @@ namespace automatic_workspace
             });
             using var connect = new NpgsqlConnection("Host = localhost; Username = postgres; password = postgres; DataBase = lab6");
             connect.Open();
-            var reader = connect.ExecuteReader("select * from users u inner join statuses s on u.status_id = s.id_status");
+            var reader = connect.ExecuteReader("select * from users u left join statuses s on u.status_id = s.id_status");
             while (reader.Read())
             {
                 users.Rows.Add(reader["id_user"], reader["login"], reader["age"], reader["status_id"], reader["name"]);
@@ -270,7 +272,7 @@ namespace automatic_workspace
             subjects.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "subject_id",
-                Visible = false
+                Visible = true
             });
             subjects.Columns.Add(new DataGridViewTextBoxColumn
             {
@@ -282,7 +284,7 @@ namespace automatic_workspace
             var reader = connect.ExecuteReader("select * from subject");
             while (reader.Read())
             {
-                subjects.Rows.Add(reader["id"], reader["subject_name"]);
+                subjects.Rows.Add(reader["id"], reader["name"]);
             }
             connect.Close();
             FillTag(subjects);
@@ -294,7 +296,7 @@ namespace automatic_workspace
             statuses.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "id_status",
-                Visible = false
+                Visible = true
             });
             statuses.Columns.Add(new DataGridViewTextBoxColumn
             {
@@ -392,7 +394,7 @@ namespace automatic_workspace
                     connect.Open();
                     int? id_user = (int?)row.Cells["id_user"].Value;
                     string login = row.Cells["login"].Value.ToString();
-                    int? age = (int?)(uint?)row.Cells["age"].Value;
+                    int? age = (row.Cells["age"].Value == DBNull.Value || row.Cells["age"].Value == null) ? null: (int?)(uint?)row.Cells["age"].Value;
                     object status = row.Cells["status"].Value;
                     int? id_status = (int?)connect.ExecuteScalar("select id_status from statuses where name = @status", new { status });
                     
@@ -625,7 +627,7 @@ namespace automatic_workspace
                         int? id_status = (int?)command_status.ExecuteScalar();
 
                         string subject = row.Cells["subject"].Value.ToString();
-                        int? id_subject = (int?)connect.ExecuteScalar("select id from subject where subject_name = @subject", new { subject });
+                        int? id_subject = (int?)connect.ExecuteScalar("select id from subject where name = @subject", new { subject });
 
                         using var command_check = new NpgsqlCommand() { Connection = connect };
                         command_check.CommandText = "select id_user from users where login = @login";
@@ -644,9 +646,13 @@ namespace automatic_workspace
 
                         if (row.Tag != null) //if a tag of the mutable row is null, then this row is new
                         {
-                            func_update_user(connect, command_user, id_user, ((List<object>)row.Tag)[0]);
+                            func_update_user(connect, command_user, id_user, ((List<object>)row.Tag)[0], row.Cells["login"].Value);
+                            if (row.Cells["login"].Value != null)
+                            {
+                                UpdateUserInfoDataGrid(row, id_status);
+                            }
+
                             func_update_question(command_for_questions, row.Cells["id_question"].Value);
-                            UpdateUserInfoDataGrid(row, id_status);
                         }
                         else
                         {
@@ -684,23 +690,24 @@ namespace automatic_workspace
             return (int)command_for_questions.ExecuteScalar();
         }
 
-        private void func_update_user(NpgsqlConnection connection, NpgsqlCommand command_user, int? id_user, object id_question)
+        private void func_update_user(NpgsqlConnection connection, NpgsqlCommand command_user, int? id_user, object id_question, object login)
         {
-            if (id_user == null) //если нового пользователя нету, то мы вставляем его 
-            {
-                command_user.CommandText = "insert into users(login, age, status_id) values (@login, @age, @status_id) returning id_user";
+            if (login != null)
+                if (id_user == null) //если нового пользователя нету, то мы вставляем его 
+                {
+                    command_user.CommandText = "insert into users(login, age, status_id) values (@login, @age, @status_id) returning id_user";
 
-                id_user = (int)command_user.ExecuteScalar();
-            }
-            else
-            {
-                command_user.CommandText = "update users set age = @age, status_id = @status_id where login = @login";
-                command_user.ExecuteNonQuery();
-            }
+                    id_user = (int)command_user.ExecuteScalar();
+                }
+                else
+                {
+                    command_user.CommandText = "update users set age = @age, status_id = @status_id where login = @login";
+                    command_user.ExecuteNonQuery();
+                }
 
             using var command_update_questions = new NpgsqlCommand() { Connection = connection };
             command_update_questions.CommandText = "update questions set user_id = @user_id where  id_question = @id_question";
-            command_update_questions.Parameters.AddWithValue("@user_id", NpgsqlDbType.Unknown, id_user);
+            command_update_questions.Parameters.AddWithValue("@user_id", NpgsqlDbType.Unknown, (object)id_user ?? DBNull.Value);
             command_update_questions.Parameters.AddWithValue("@id_question", NpgsqlDbType.Unknown, id_question);
             command_update_questions.ExecuteNonQuery();
         }
@@ -754,30 +761,30 @@ namespace automatic_workspace
                     using var connect = new NpgsqlConnection(connect_string);
                     connect.Open();
                     if (row.Cells[1].Value == null) return;
-                    int new_id = (int)row.Cells[0].Value;
+                    object new_id = row.Cells[0].Value;
                     string status = row.Cells[1].Value.ToString();
                     string table_name, col_name, index_col;
+                    col_name = "name";
                     if (data == statuses)
                     {
                         table_name = "statuses";
-                        col_name = "name";
                         index_col = "status";
                     }
                     else
                     {
                         table_name = "subject";
-                        col_name = "subject_name";
                         index_col = "subject";
                     }
+
                     if (HasDuplicates(data, e.ColumnIndex, row.Cells[1].Value)) return;
                     if (row.Tag == null)
                     {
                         var res = new PostgresCompiler()
                             .Compile(new Query(table_name)
-                            .AsInsert(new string[] { col_name }, new string[] { status }));
+                            .AsInsert(new { name = status }, true));
                         using var command = new NpgsqlCommand() { Connection = connect, CommandText = res.Sql };
                         command.Parameters.AddWithValue(res.NamedBindings.Keys.AsList()[0], res.NamedBindings.Values.AsList()[0]);
-                        new_id = (int)command.ExecuteScalar();
+                        new_id = command.ExecuteScalar();
                         ChangeStatus?.Invoke(data, new InfoEventArgs(true, table_name, col_name, index_col));
                     }
                     else
@@ -796,6 +803,7 @@ namespace automatic_workspace
                         command.ExecuteNonQuery();
                         ChangeStatus?.Invoke(data, new InfoEventArgs(false, table_name, col_name, index_col, data == statuses ? "status_id" : "subject_id", ((List<object>)row.Tag)[0], row.Cells[1].Value));
                     }
+                    row.Cells[0].Value = new_id;
                     connect.Close();
                 }
             }
@@ -857,19 +865,11 @@ namespace automatic_workspace
 
         }
 
-        private void RowsRemoved(object sender, DataGridViewRowsRemovedEventArgs e)
-        {
-            //DataGridView dataGrid = (DataGridView)sender;
-
-            //if (!dataGrid.CurrentRow.IsNewRow)
-            //    Delete_one_row(dataGrid.CurrentRow);
-        }
-
         private void Delete_one_row(DataGridViewRow row)
         {
             DataGridView gridView = row.DataGridView;
             using var connect = new NpgsqlConnection(connect_string);
-            int id = (int)row.Cells[0].Value;
+            object id = row.Cells[0].Value;
             connect.Open();
             if (gridView == questions)
             {
@@ -879,9 +879,8 @@ namespace automatic_workspace
             else if (gridView == ans_quest)
             {
                 int question_id = (int)gridView.Tag;
-                int user_id_ans = id;
-                connect.Execute("delete from answers where question_id = @question_id and user_id_ans = @user_id_ans",
-                    new { question_id, user_id_ans });
+                connect.Execute("delete from answers where question_id = @question_id and user_id_ans = @id",
+                    new { question_id, id });
             }
             else if (gridView == data_grid_view_operators)
             {
@@ -890,30 +889,80 @@ namespace automatic_workspace
             else if (gridView == users)
             {
                 connect.Execute("delete from users where id_user = @id", new { id });
-                Delete_into_questions(id);
-                Delete_into_answers();
+                Setnull_user(id);
             }
             else if (gridView == statuses)
             {
-
+                connect.Execute("delete from statuses where id_status = @id", new { id });
+                Setnull_status(id);
             }
             else if (gridView == subjects)
             {
-
+                
+                connect.Execute("delete from subject where id = @id", new { id });
+                Setnull_subject(id);
             }
 
             connect.Close();
         }
-        private void Delete_into_questions(int id_user)
+
+        private bool HasQuestionsWithThisSubject(object id_subject)
+        {
+            foreach (DataGridViewRow row in questions.Rows)
+                if (row.Cells["subject_id"].Value != null)
+                    if (row.Cells["subject_id"].Value.Equals(id_subject))
+                        return true;
+            return false;
+
+        }
+        private void Setnull_user(object id_user)
         {
             foreach (DataGridViewRow row in questions.Rows)
             {
-                
+                if (row.Cells["user_id"].Value != null)
+                    if (row.Cells["user_id"].Value.Equals(id_user))
+                    {
+                        row.Cells["user_id"].Value = null;
+                        row.Cells["login"].Value = null;
+                        row.Cells["age"].Value = null;
+                        row.Cells["status_id"].Value = null;
+                        row.Cells["status"].Value = null;
+                    }
             }
-        }
-        private void Delete_into_answers()
-        {
 
+            ans_quest.Visible = false;
+        }
+
+        private void Setnull_status(object id_status)
+        {
+            foreach (DataGridViewRow row in users.Rows)
+                if (row.Cells["status"].Value != null)
+                    if (row.Cells["status"].Value.Equals(id_status))
+                    {
+                        row.Cells["status_id"].Value = null;
+                        row.Cells["status"].Value = null;
+                    }
+
+            foreach (DataGridViewRow row in questions.Rows)
+                if (row.Cells["status"].Value != null)
+                    if (row.Cells["status"].Value.Equals(id_status))
+                    {
+                        row.Cells["status_id"].Value = null;
+                        row.Cells["status"].Value = null;
+                    }
+
+            ans_quest.Visible = false;
+        }
+
+        private void Setnull_subject(object id_subject)
+        {
+            foreach (DataGridViewRow row in questions.Rows)
+                if (row.Cells["subject"].Value != null)
+                    if (row.Cells["subject"].Value.Equals(id_subject))
+                    {
+                        row.Cells["subject_id"].Value = null;
+                        row.Cells["subject"].Value = null;
+                    }
         }
         private void KeyDown_grid(object sender, KeyEventArgs e)
         {
@@ -930,17 +979,25 @@ namespace automatic_workspace
                         }
                     }
                     break;
-                case Keys.Delete:
-                    foreach (DataGridViewRow row in dataGrid.SelectedRows)
-                    {
-                        if (!row.IsNewRow)
-                        {
-                            Delete_one_row(row);
-                            dataGrid.Rows.Remove(row);
-                        }
-                    }
-                    break;
             }
+        }
+
+        private void UserDeletingRow_grid(object sender, DataGridViewRowCancelEventArgs e)
+        {
+            var row = e.Row;
+            DataGridView dataGrid = (DataGridView)sender;
+            if (!row.IsNewRow)
+            {
+                if (dataGrid == subjects)
+                    if (HasQuestionsWithThisSubject(row.Cells[0].Value))
+                    {
+                        MessageBox.Show("Невозмможно удалить данную строку так как есть вопросы связанные с этим предметом");
+                        e.Cancel = true;
+                        return;
+                    }
+                Delete_one_row(row);
+            }
+
         }
     }
 
