@@ -47,6 +47,11 @@ namespace automatic_workspace
             Initialize_user_ans();
             InitializeStatuses();
 
+            DataTable statuses = new DataTable();
+            dates_load(statuses, "select name from statuses");
+            comboBox_query.DataSource = statuses;
+            comboBox_query.DisplayMember = "name";
+            comboBox_query.Text = string.Empty;
         }
         private void InitializeQuestions()
         {
@@ -998,6 +1003,50 @@ namespace automatic_workspace
                 Delete_one_row(row);
             }
 
+        }
+
+        private void numericUpDown1_ValueChanged(object sender, EventArgs e)
+        {
+            label_first.Text = string.Empty;
+            object current_value = numericUpDown1.Value;
+            var res = new PostgresCompiler().Compile(new Query("users").Select(new string[] { "login", "age" }).Where("age", ">", current_value));
+            using var connect = new NpgsqlConnection(connect_string);
+            connect.Open();
+            using var command = new NpgsqlCommand()
+            {
+                Connection = connect,
+                CommandText = res.Sql
+            };
+            command.Parameters.AddWithValue(res.NamedBindings.Keys.AsList()[0], res.NamedBindings.Values.AsList()[0]);
+            var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                label_first.Text += string.Format("{0}  {1}", reader["login"].ToString(), reader["age"].ToString());
+                label_first.Text += "\n";
+            }
+            connect.Close();
+        }
+
+        private void comboBox_query_TextChanged(object sender, EventArgs e)
+        {
+            if (comboBox_query.Text != null)
+            {
+                label_second.Text = string.Empty;
+                using var connect = new NpgsqlConnection(connect_string);
+                connect.Open();
+                var query = new PostgresCompiler().Compile(new Query("questions")
+                    .Join("users", "user_id", "id_user")
+                    .Where("status_id", "=",
+                    new Query("statuses")
+                        .Select("id_status")
+                        .Where("name", "=", comboBox_query.Text))
+                        .AsCount());
+                using var command = new NpgsqlCommand() { Connection = connect, CommandText = query.Sql };
+                command.Parameters.AddWithValue(query.NamedBindings.Keys.AsList()[0], query.NamedBindings.Values.AsList()[0]);
+                object count = command.ExecuteScalar();
+                label_second.Text = count.ToString() ?? "Empty";
+                connect.Close();
+            }
         }
     }
 

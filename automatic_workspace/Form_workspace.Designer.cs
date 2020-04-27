@@ -40,6 +40,13 @@
             this.statuses = new System.Windows.Forms.DataGridView();
             this.operators_page = new System.Windows.Forms.TabPage();
             this.data_grid_view_operators = new System.Windows.Forms.DataGridView();
+            this.query_page = new System.Windows.Forms.TabPage();
+            this.label1 = new System.Windows.Forms.Label();
+            this.label2 = new System.Windows.Forms.Label();
+            this.numericUpDown1 = new System.Windows.Forms.NumericUpDown();
+            this.comboBox_query = new System.Windows.Forms.ComboBox();
+            this.label_first = new System.Windows.Forms.Label();
+            this.label_second = new System.Windows.Forms.Label();
             this.tabControl.SuspendLayout();
             this.main_page.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.ans_quest)).BeginInit();
@@ -52,6 +59,8 @@
             ((System.ComponentModel.ISupportInitialize)(this.statuses)).BeginInit();
             this.operators_page.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.data_grid_view_operators)).BeginInit();
+            this.query_page.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).BeginInit();
             this.SuspendLayout();
             // 
             // tabControl
@@ -61,10 +70,11 @@
             this.tabControl.Controls.Add(this.users_page);
             this.tabControl.Controls.Add(this.statuses_page);
             this.tabControl.Controls.Add(this.operators_page);
+            this.tabControl.Controls.Add(this.query_page);
             this.tabControl.Location = new System.Drawing.Point(12, 12);
             this.tabControl.Name = "tabControl";
             this.tabControl.SelectedIndex = 0;
-            this.tabControl.Size = new System.Drawing.Size(994, 669);
+            this.tabControl.Size = new System.Drawing.Size(1054, 669);
             this.tabControl.TabIndex = 0;
             // 
             // main_page
@@ -211,6 +221,78 @@
             this.data_grid_view_operators.UserDeletingRow += new System.Windows.Forms.DataGridViewRowCancelEventHandler(this.UserDeletingRow_grid);
             this.data_grid_view_operators.KeyDown += new System.Windows.Forms.KeyEventHandler(this.KeyDown_grid);
             // 
+            // query_page
+            // 
+            this.query_page.Controls.Add(this.label_second);
+            this.query_page.Controls.Add(this.label_first);
+            this.query_page.Controls.Add(this.comboBox_query);
+            this.query_page.Controls.Add(this.numericUpDown1);
+            this.query_page.Controls.Add(this.label2);
+            this.query_page.Controls.Add(this.label1);
+            this.query_page.Location = new System.Drawing.Point(4, 25);
+            this.query_page.Name = "query_page";
+            this.query_page.Padding = new System.Windows.Forms.Padding(3);
+            this.query_page.Size = new System.Drawing.Size(1046, 640);
+            this.query_page.TabIndex = 5;
+            this.query_page.Text = "queries";
+            this.query_page.UseVisualStyleBackColor = true;
+            // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(7, 7);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(221, 17);
+            this.label1.TabIndex = 0;
+            this.label1.Text = "Пользователи, которым больше";
+            // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(413, 7);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(403, 17);
+            this.label2.TabIndex = 1;
+            this.label2.Text = "Количество вопросов, данных пользователями со статусом";
+            // 
+            // numericUpDown1
+            // 
+            this.numericUpDown1.Location = new System.Drawing.Point(234, 7);
+            this.numericUpDown1.Maximum = new decimal(new int[] {
+            140,
+            0,
+            0,
+            0});
+            this.numericUpDown1.Name = "numericUpDown1";
+            this.numericUpDown1.Size = new System.Drawing.Size(92, 22);
+            this.numericUpDown1.TabIndex = 4;
+            this.numericUpDown1.ValueChanged += new System.EventHandler(this.numericUpDown1_ValueChanged);
+            // 
+            // comboBox_query
+            // 
+            this.comboBox_query.FormattingEnabled = true;
+            this.comboBox_query.Location = new System.Drawing.Point(879, 5);
+            this.comboBox_query.Name = "comboBox_query";
+            this.comboBox_query.Size = new System.Drawing.Size(161, 24);
+            this.comboBox_query.TabIndex = 5;
+            this.comboBox_query.TextChanged += new System.EventHandler(this.comboBox_query_TextChanged);
+            // 
+            // label_first
+            // 
+            this.label_first.AutoSize = true;
+            this.label_first.Location = new System.Drawing.Point(7, 89);
+            this.label_first.Name = "label_first";
+            this.label_first.Size = new System.Drawing.Size(0, 17);
+            this.label_first.TabIndex = 6;
+            // 
+            // label_second
+            // 
+            this.label_second.AutoSize = true;
+            this.label_second.Location = new System.Drawing.Point(413, 100);
+            this.label_second.Name = "label_second";
+            this.label_second.Size = new System.Drawing.Size(0, 17);
+            this.label_second.TabIndex = 7;
+            // 
             // Form_workspace
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
@@ -231,6 +313,9 @@
             ((System.ComponentModel.ISupportInitialize)(this.statuses)).EndInit();
             this.operators_page.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.data_grid_view_operators)).EndInit();
+            this.query_page.ResumeLayout(false);
+            this.query_page.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -249,6 +334,13 @@
         private System.Windows.Forms.DataGridView subjects;
         private System.Windows.Forms.TabPage operators_page;
         private System.Windows.Forms.DataGridView statuses;
+        private System.Windows.Forms.TabPage query_page;
+        private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.NumericUpDown numericUpDown1;
+        private System.Windows.Forms.ComboBox comboBox_query;
+        private System.Windows.Forms.Label label_first;
+        private System.Windows.Forms.Label label_second;
     }
 }
 
