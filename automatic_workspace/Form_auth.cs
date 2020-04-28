@@ -18,6 +18,12 @@ namespace automatic_workspace
         public Form_auth()
         {
             InitializeComponent();
+            if (Info_operate.Current_operation == Info_operate.Types.add_from_auth)
+            {
+                button_guest.Visible = false;
+                button_login.Visible = false;
+                button_registration.Location = button_login.Location;
+            }
         }
 
         private void button_login_Click(object sender, EventArgs e)
@@ -68,9 +74,16 @@ namespace automatic_workspace
                 new Form_auth().ShowDialog();
             }
             else
-                ExecuteAdd_registration(textbox_login.Text, Hash.HashMD5(textbox_password.Text+Hash.salt));
+            {
+                ExecuteAdd_registration(textbox_login.Text, Hash.HashMD5(textbox_password.Text + Hash.salt));
+                var timer = new Timer() { Interval = 3000 };
+                timer.Tick += new EventHandler(delegate (object _s, EventArgs _e) {
+                    timer.Stop();
+                    Close();
+                });
+                timer.Start();
+            }
         }
-
         private void ExecuteAdd_registration(string login, string password)
         {
             using var connection = new NpgsqlConnection("Host = localhost; Username = postgres; Password = postgres; DataBase = lab6");
@@ -104,8 +117,6 @@ namespace automatic_workspace
     {
         public enum Types{ add, delete, update, add_from_auth}
         public static Types? Current_operation { get; set; }
-        public static bool Add_from_auth { get; set; }
-        public static string active_item { get; set; }
     }
 
     public static class Hash

@@ -32,7 +32,7 @@
             this.main_page = new System.Windows.Forms.TabPage();
             this.ans_quest = new System.Windows.Forms.DataGridView();
             this.questions = new System.Windows.Forms.DataGridView();
-            this.operator_page = new System.Windows.Forms.TabPage();
+            this.subject_page = new System.Windows.Forms.TabPage();
             this.subjects = new System.Windows.Forms.DataGridView();
             this.users_page = new System.Windows.Forms.TabPage();
             this.users = new System.Windows.Forms.DataGridView();
@@ -51,7 +51,7 @@
             this.main_page.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.ans_quest)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.questions)).BeginInit();
-            this.operator_page.SuspendLayout();
+            this.subject_page.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.subjects)).BeginInit();
             this.users_page.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.users)).BeginInit();
@@ -66,7 +66,7 @@
             // tabControl
             // 
             this.tabControl.Controls.Add(this.main_page);
-            this.tabControl.Controls.Add(this.operator_page);
+            this.tabControl.Controls.Add(this.subject_page);
             this.tabControl.Controls.Add(this.users_page);
             this.tabControl.Controls.Add(this.statuses_page);
             this.tabControl.Controls.Add(this.operators_page);
@@ -127,14 +127,14 @@
             // 
             // subject_page
             // 
-            this.operator_page.Controls.Add(this.subjects);
-            this.operator_page.Location = new System.Drawing.Point(4, 25);
-            this.operator_page.Name = "subject_page";
-            this.operator_page.Padding = new System.Windows.Forms.Padding(3);
-            this.operator_page.Size = new System.Drawing.Size(1046, 640);
-            this.operator_page.TabIndex = 1;
-            this.operator_page.Text = "subjects";
-            this.operator_page.UseVisualStyleBackColor = true;
+            this.subject_page.Controls.Add(this.subjects);
+            this.subject_page.Location = new System.Drawing.Point(4, 25);
+            this.subject_page.Name = "subject_page";
+            this.subject_page.Padding = new System.Windows.Forms.Padding(3);
+            this.subject_page.Size = new System.Drawing.Size(1046, 640);
+            this.subject_page.TabIndex = 1;
+            this.subject_page.Text = "subjects";
+            this.subject_page.UseVisualStyleBackColor = true;
             // 
             // subjects
             // 
@@ -317,7 +317,7 @@
             this.main_page.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.ans_quest)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.questions)).EndInit();
-            this.operator_page.ResumeLayout(false);
+            this.subject_page.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.subjects)).EndInit();
             this.users_page.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.users)).EndInit();
@@ -336,7 +336,7 @@
 
         private System.Windows.Forms.TabControl tabControl;
         private System.Windows.Forms.TabPage main_page;
-        private System.Windows.Forms.TabPage operator_page;
+        private System.Windows.Forms.TabPage subject_page;
         private System.Windows.Forms.DataGridView questions;
         private System.Windows.Forms.DataGridView data_grid_view_operators;
         private System.Windows.Forms.TabPage users_page;

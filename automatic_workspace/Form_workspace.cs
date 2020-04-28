@@ -53,7 +53,7 @@ namespace automatic_workspace
             }
             if (User_info.Current_status == User_info.Status.Guest || User_info.Current_status == User_info.Status.Operator)
             {
-                operator_page.Dispose();
+                operators_page.Dispose();
             }
             InitializeQuestions();
             InitializeOperators();

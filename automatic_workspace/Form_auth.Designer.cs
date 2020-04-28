@@ -37,8 +37,6 @@
             this.label_result = new System.Windows.Forms.Label();
             this.strenght_password = new System.Windows.Forms.Label();
             this.label_update = new System.Windows.Forms.Label();
-            this.textBox_old = new System.Windows.Forms.TextBox();
-            this.label_old = new System.Windows.Forms.Label();
             this.button_guest = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
@@ -119,25 +117,6 @@
             this.label_update.Size = new System.Drawing.Size(0, 17);
             this.label_update.TabIndex = 8;
             // 
-            // textBox_old
-            // 
-            this.textBox_old.Location = new System.Drawing.Point(462, 135);
-            this.textBox_old.Name = "textBox_old";
-            this.textBox_old.PasswordChar = '*';
-            this.textBox_old.Size = new System.Drawing.Size(255, 22);
-            this.textBox_old.TabIndex = 9;
-            this.textBox_old.Visible = false;
-            // 
-            // label_old
-            // 
-            this.label_old.AutoSize = true;
-            this.label_old.Location = new System.Drawing.Point(459, 104);
-            this.label_old.Name = "label_old";
-            this.label_old.Size = new System.Drawing.Size(95, 17);
-            this.label_old.TabIndex = 10;
-            this.label_old.Text = "Old Password";
-            this.label_old.Visible = false;
-            // 
             // button_guest
             // 
             this.button_guest.Location = new System.Drawing.Point(537, 282);
@@ -155,8 +134,6 @@
             this.AutoSize = true;
             this.ClientSize = new System.Drawing.Size(800, 450);
             this.Controls.Add(this.button_guest);
-            this.Controls.Add(this.label_old);
-            this.Controls.Add(this.textBox_old);
             this.Controls.Add(this.label_update);
             this.Controls.Add(this.strenght_password);
             this.Controls.Add(this.label_result);
@@ -184,8 +161,6 @@
         private System.Windows.Forms.Label strenght_password;
         public System.Windows.Forms.TextBox textbox_password;
         private System.Windows.Forms.Label label_update;
-        private System.Windows.Forms.TextBox textBox_old;
-        private System.Windows.Forms.Label label_old;
         private System.Windows.Forms.Button button_guest;
     }
 }
