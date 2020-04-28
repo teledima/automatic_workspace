@@ -23,6 +23,7 @@ namespace automatic_workspace
         public Form_workspace()
         {
             InitializeComponent();
+            ChangeStatus += OnChangeItem;
             if (User_info.Current_status == User_info.Status.Operator || User_info.Current_status == User_info.Status.Admin)
             {
                 questions.AllowUserToAddRows = true;
@@ -428,13 +429,13 @@ namespace automatic_workspace
                     {
                         id_user = (int?)connect.ExecuteScalar("insert into users(login, age, status_id) values (@login, @age, @id_status) returning id_user",
                             new { login, age, id_status});
-
                     }
                     else
                     {
                         connect.Execute("update users set login = @login, age = @age, status_id = @id_status where id_user = @id_user",
                             new { login, age, id_status, id_user });
                         Update_User_info_questions(id_user, login, age, id_status, status);
+                        ans_quest.Visible = false;
                     }
                     connect.Close();
                     row.Cells["id_user"].Value = id_user;
@@ -506,7 +507,7 @@ namespace automatic_workspace
                     using var connect = new NpgsqlConnection(connect_string);
                     connect.Open();
                     // ищем id_status
-                    string status = row.Cells["status"].Value.ToString();
+                    object status = row.Cells["status"].Value;
                     int? id_status = (int?)connect.ExecuteScalar("select id_status from statuses where name = @status", new { status });
                     int question_id = (int)ans_quest.Tag;
                     if (row.Tag == null) //если мы вставляем новую запись
@@ -518,8 +519,9 @@ namespace automatic_workspace
                             string login = row.Cells["login"].Value.ToString();
                             int age = (int)(uint)row.Cells["age"].Value;
                             int? status_id = id_status;
+                            // добавляем пользователя в таблицу answers
                             user_id_ans = (int)connect.ExecuteScalar("insert into users(login, age, status_id) values (@login, @age, @status_id) returning id_user", new { login, age, status_id });
-                            // добавлеям пользователя в таблицу answers
+                            FillRowTag(users.Rows[users.Rows.Add(user_id_ans, login, age, status_id, row.Cells["status"].Value)]);
                         }
                         else // иначе, если пользователь существует то надо только вставить новую запись в answers
                         {
@@ -554,7 +556,6 @@ namespace automatic_workspace
                 }
             }
         }
-
         private void ans_quest_CellEndEdit(object sender, DataGridViewCellEventArgs e)
         {
             if (ans_quest.Rows[e.RowIndex].Cells[e.ColumnIndex].Value != null)
