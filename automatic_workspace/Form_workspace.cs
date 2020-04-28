@@ -81,7 +81,7 @@ namespace automatic_workspace
             {
                 Name = "id_question",
                 ValueType = typeof(uint),
-                Visible = true
+                Visible = false
             });
             questions.Columns.Add(new DataGridViewTextBoxColumn
             {
@@ -111,7 +111,7 @@ namespace automatic_workspace
             questions.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "user_id",
-                Visible = true
+                Visible = false
             });
             questions.Columns.Add(new DataGridViewTextBoxColumn
             {
@@ -128,7 +128,7 @@ namespace automatic_workspace
             questions.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "status_id",
-                Visible = true,
+                Visible = false,
                 ValueType = typeof(uint)
             });
             questions.Columns.Add(new DataGridViewComboBoxColumn
@@ -159,6 +159,9 @@ namespace automatic_workspace
                         reader["st_name"]); //fill data_grid_view
                 }
             }
+            questions.Columns["age"].ReadOnly = true;
+            questions.Columns["status"].ReadOnly = true;
+            questions.Columns["status_id"].ReadOnly = true;
             FillTag(questions);
         }
         private void InitializeUsers()
@@ -170,7 +173,7 @@ namespace automatic_workspace
             users.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "id_user",
-                Visible = true
+                Visible =false
             });
             users.Columns.Add(new DataGridViewTextBoxColumn
             {
@@ -186,7 +189,7 @@ namespace automatic_workspace
             users.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "status_id",
-                Visible = true
+                Visible = false
             });
             users.Columns.Add(new DataGridViewComboBoxColumn
             {
@@ -213,7 +216,7 @@ namespace automatic_workspace
             data_grid_view_operators.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "id_user",
-                Visible = true
+                Visible =false
             });
             data_grid_view_operators.Columns.Add(new DataGridViewTextBoxColumn
             {
@@ -284,6 +287,9 @@ namespace automatic_workspace
                 DisplayMember = "name"
             });
             ans_quest.Visible = false;
+            ans_quest.Columns["age"].ReadOnly = true;
+            ans_quest.Columns["status_id"].ReadOnly = true;
+            ans_quest.Columns["status"].ReadOnly = true;
         }
         private void InitializeSubjects()
         {
@@ -292,7 +298,7 @@ namespace automatic_workspace
             subjects.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "subject_id",
-                Visible = true
+                Visible = false
             });
             subjects.Columns.Add(new DataGridViewTextBoxColumn
             {
@@ -316,7 +322,7 @@ namespace automatic_workspace
             statuses.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "id_status",
-                Visible = true
+                Visible = false
             });
             statuses.Columns.Add(new DataGridViewTextBoxColumn
             {
@@ -414,7 +420,7 @@ namespace automatic_workspace
                     connect.Open();
                     int? id_user = (int?)row.Cells["id_user"].Value;
                     string login = row.Cells["login"].Value.ToString();
-                    int? age = (row.Cells["age"].Value == DBNull.Value || row.Cells["age"].Value == null) ? null: (int?)(uint?)row.Cells["age"].Value;
+                    object age = int.Parse(row.Cells["age"].Value.ToString());
                     object status = row.Cells["status"].Value;
                     int? id_status = (int?)connect.ExecuteScalar("select id_status from statuses where name = @status", new { status });
                     
@@ -428,6 +434,7 @@ namespace automatic_workspace
                     {
                         connect.Execute("update users set login = @login, age = @age, status_id = @id_status where id_user = @id_user",
                             new { login, age, id_status, id_user });
+                        Update_User_info_questions(id_user, login, age, id_status, status);
                     }
                     connect.Close();
                     row.Cells["id_user"].Value = id_user;
@@ -436,7 +443,21 @@ namespace automatic_workspace
                 }
             }
         }
-
+        private void Update_User_info_questions(object id_user, object new_login, object new_age, object new_status_id, object new_status)
+        {
+            foreach (DataGridViewRow row in questions.Rows)
+            {
+                if (!row.IsNewRow)
+                    if (row.Cells["user_id"].Value.Equals(id_user))
+                    {
+                        row.Cells["login"].Value = new_login;
+                        row.Cells["age"].Value = new_age;
+                        row.Cells["status_id"].Value = new_status_id;
+                        row.Cells["status"].Value = new_status;
+                        FillRowTag(row);
+                    }
+            }
+        }
         private void questions_CellEndEdit(object sender, DataGridViewCellEventArgs e)
         {
             if (e.ColumnIndex == questions.Columns["link_id"].Index)
@@ -486,7 +507,7 @@ namespace automatic_workspace
                     connect.Open();
                     // ищем id_status
                     string status = row.Cells["status"].Value.ToString();
-                    int id_status = (int)connect.ExecuteScalar("select id_status from statuses where name = @status", new { status });
+                    int? id_status = (int?)connect.ExecuteScalar("select id_status from statuses where name = @status", new { status });
                     int question_id = (int)ans_quest.Tag;
                     if (row.Tag == null) //если мы вставляем новую запись
                     {
@@ -496,7 +517,7 @@ namespace automatic_workspace
                             // добавляем нового пользователя в таблицу users
                             string login = row.Cells["login"].Value.ToString();
                             int age = (int)(uint)row.Cells["age"].Value;
-                            int status_id = id_status;
+                            int? status_id = id_status;
                             user_id_ans = (int)connect.ExecuteScalar("insert into users(login, age, status_id) values (@login, @age, @status_id) returning id_user", new { login, age, status_id });
                             // добавлеям пользователя в таблицу answers
                         }
@@ -515,7 +536,7 @@ namespace automatic_workspace
                             // добавляем нового пользователя в таблицу users
                             string login = row.Cells["login"].Value.ToString();
                             int age = (int)row.Cells["age"].Value;
-                            int status_id = id_status;
+                            int? status_id = id_status;
                             new_user_id = (int)connect.ExecuteScalar("insert into users(login, age, status_id) values (@login, @age, @status_id) returning id_user", new { login, age, status_id });
                             // обновляем user_id_ans в таблице answers
                             connect.Execute("update answers set user_id_ans = @new_user_id where question_id = @question_id and user_id_ans = @old_user_id",
