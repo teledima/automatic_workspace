@@ -16,8 +16,7 @@ namespace automatic_workspace
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            //Application.Run(new Form_auth());
-            User_info.Current_status = User_info.Status.Admin;
+            Application.Run(new Form_auth());
             if (User_info.Current_status != null)
                 Application.Run(new Form_workspace());
         }
